@@ -1,0 +1,1925 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="color-scheme" content="light" />
+    <link rel="icon" href="data:," />
+    <script>document.documentElement.classList.add("js");</script>
+    <title>模型训练服务</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Fira+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+      :root {
+        --bg: #F8FAFC;
+        --surface: #FFFFFF;
+        --surface-2: #F1F5F9;
+        --surface-3: #E8EEF5;
+        --ink: #1E293B;
+        --body: #334155;
+        --muted: #64748B;
+        --line: #E2E8F0;
+        --line-2: #CBD5E1;
+        --primary: #2563EB;
+        --primary-2: #3B82F6;
+        --primary-soft: #EFF6FF;
+        --cta: #F97316;
+        --cta-deep: #EA580C;
+        --green: #15803D;
+        --green-soft: #F0FDF4;
+        --amber: #B45309;
+        --amber-soft: #FFFBEB;
+        --red: #B91C1C;
+        --red-soft: #FEF2F2;
+        --c-lora: #2563EB;
+        --c-lora-soft: #EFF6FF;
+        --c-full: #1E293B;
+        --c-full-soft: #F1F5F9;
+        --c-pre: #0284C7;
+        --c-pre-soft: #F0F9FF;
+        --sans: "Fira Sans", system-ui, -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", sans-serif;
+        --mono: "Fira Code", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      * { box-sizing: border-box; }
+      html { -webkit-text-size-adjust: 100%; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--body);
+        font-family: var(--sans);
+        font-size: 15px;
+        line-height: 1.6;
+      }
+      .wrap { max-width: 1280px; margin: 0 auto; padding: 0 16px 64px; }
+      @media (min-width: 640px) { .wrap { padding: 0 24px 64px; } }
+      @media (min-width: 1024px) { .wrap { padding: 0 32px 72px; } }
+      .mono { font-family: var(--mono); }
+      h1, h2, h3 { color: var(--ink); margin: 0; }
+      button { cursor: pointer; font-family: var(--sans); }
+      button, select, input:not([type="checkbox"], [type="radio"]), textarea { min-height: 2.25rem; }
+      :focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; border-radius: 4px; }
+      ::selection { background: #BFDBFE; }
+
+      .icon { width: 18px; height: 18px; flex: none; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+      .icon.sm { width: 15px; height: 15px; }
+
+      /* ---------- 顶部通栏 ---------- */
+      .topbar {
+        display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px;
+        padding: 18px 0 14px;
+        border-bottom: 2px solid var(--ink);
+        margin-bottom: 18px;
+      }
+      .tb-name { font-size: 19px; font-weight: 700; color: var(--ink); letter-spacing: -0.01em; display: inline-flex; align-items: center; gap: 10px; }
+      .tb-name .icon { width: 22px; height: 22px; color: var(--primary); }
+      .tb-tag { font-size: 12.5px; color: var(--muted); font-family: var(--mono); }
+      .topbar .spacer { flex: 1; }
+      .tb-note { font-size: 12px; color: var(--muted); font-family: var(--mono); }
+
+      /* ---------- 分段导航 ---------- */
+      .tabbar {
+        position: sticky; top: 10px; z-index: 20;
+        display: flex; flex-wrap: wrap;
+        background: var(--surface); border: 1px solid var(--line-2); border-radius: 10px;
+        padding: 4px; gap: 4px; margin-bottom: 28px;
+        box-shadow: 0 1px 2px rgba(15, 23, 42, .05);
+      }
+      .tabbar button {
+        flex: 1 1 auto; border: 0; background: transparent; color: var(--muted);
+        font-size: 14.5px; font-weight: 500; border-radius: 7px;
+        padding: 9px 14px; white-space: nowrap;
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        transition: background-color .2s, color .2s;
+      }
+      .tabbar button:hover { color: var(--ink); background: var(--surface-2); }
+      .tabbar button[aria-selected="true"] { background: var(--primary); color: #fff; font-weight: 600; }
+      .tabbar button[aria-selected="true"]:hover { background: var(--primary); }
+      @media (max-width: 640px) {
+        .tabbar button { flex: 1 1 40%; font-size: 13.5px; padding: 8px 6px; }
+      }
+
+      .panel { display: none; }
+      .panel.on { display: block; }
+
+      /* ---------- 视图切换（首页落地页 / 训练页） ---------- */
+      .view-off { display: none !important; }
+      .back-link {
+        display: inline-flex; align-items: center; gap: 6px;
+        background: none; border: 0; padding: 4px 2px; margin-bottom: 12px;
+        color: var(--primary); font-size: 14px; font-weight: 600;
+      }
+      .back-link:hover { color: #1D4ED8; text-decoration: underline; }
+      .back-link .icon { width: 16px; height: 16px; }
+
+      /* ---------- 首页宣传页 ---------- */
+      .hero { display: grid; grid-template-columns: 1.05fr .95fr; gap: 44px; align-items: center; padding: 60px 0 48px; }
+      @media (max-width: 900px) { .hero { grid-template-columns: 1fr; gap: 26px; padding: 26px 0 20px; } }
+      .hero h1 { font-size: clamp(32px, 4.6vw, 48px); line-height: 1.16; font-weight: 700; letter-spacing: -0.02em; margin-bottom: 16px; }
+      .hero-sub { color: var(--muted); font-size: 16.5px; line-height: 1.65; margin: 0 0 24px; max-width: 520px; }
+      .hero-meta { display: flex; flex-wrap: wrap; gap: 6px 22px; margin-top: 22px; font-family: var(--mono); font-size: 12.5px; color: var(--muted); }
+
+      .vis-card {
+        background: var(--surface); border: 1px solid var(--line-2); border-radius: 14px;
+        padding: 20px 22px; box-shadow: 0 16px 40px rgba(15, 23, 42, .07);
+      }
+      .vis-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 8px; }
+      .vis-title { font-family: var(--mono); font-size: 12px; font-weight: 600; letter-spacing: .08em; color: var(--ink); display: inline-flex; align-items: center; gap: 8px; }
+      .vis-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--green); flex: none; }
+      .vis-tag { font-size: 11.5px; font-weight: 700; color: var(--green); background: var(--green-soft); border-radius: 999px; padding: 2px 9px; white-space: nowrap; }
+      .vis-svg { width: 100%; height: auto; display: block; }
+      .vis-svg line { stroke: var(--line); stroke-width: 1; }
+      .vis-svg text { font-family: var(--mono); font-size: 10.5px; fill: var(--muted); }
+      .loss-path { fill: none; stroke: var(--primary); stroke-width: 2.5; stroke-linecap: round; }
+      .js .loss-path { stroke-dasharray: 1; stroke-dashoffset: 1; }
+      .js .rv.in .loss-path { stroke-dashoffset: 0; transition: stroke-dashoffset 1.6s ease-out .15s; }
+      .loss-dot { fill: var(--primary-2); }
+      .loss-dot.end { fill: var(--cta); }
+      .vis-stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; border-top: 1px solid var(--line); padding-top: 14px; margin-top: 6px; }
+      .vis-stats .vs-v { display: block; font-size: 15px; font-weight: 600; color: var(--ink); }
+      .vis-stats .vs-k { font-size: 12px; color: var(--muted); }
+      .vis-prog-row { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; color: var(--muted); margin-top: 16px; }
+      .vis-prog-row .mono { color: var(--ink); font-weight: 600; }
+      .vis-prog { height: 6px; background: var(--surface-2); border-radius: 999px; overflow: hidden; margin-top: 6px; }
+      .vis-prog-fill { height: 100%; width: 100%; background: var(--primary); border-radius: 999px; transform-origin: left center; }
+      .js .vis-prog-fill { transform: scaleX(0); }
+      .js .rv.in .vis-prog-fill { transform: scaleX(1); transition: transform 1.2s ease-out .35s; }
+      .vis-note { font-size: 12.5px; color: var(--muted); margin: 12px 0 0; }
+
+      .sec-head { margin: 60px 0 18px; }
+      .sec-head h2 { font-size: 24px; font-weight: 700; letter-spacing: -0.01em; }
+      .sec-head p { color: var(--muted); font-size: 14px; margin: 6px 0 0; max-width: 640px; }
+
+      .cta-band {
+        margin-top: 52px; background: var(--ink); border-radius: 14px; padding: 30px 32px;
+        display: flex; align-items: center; justify-content: space-between; gap: 18px 24px; flex-wrap: wrap;
+      }
+      .cta-band h2 { color: #fff; font-size: 22px; font-weight: 700; }
+      .cta-band p { color: #CBD5E1; margin: 6px 0 0; font-size: 14px; }
+
+      /* 滚动显现：淡入 + 上移，ease-out；无 JS 时不隐藏 */
+      .js .rv { opacity: 0; transform: translateY(14px); transition: opacity .3s ease-out, transform .3s ease-out; }
+      .js .rv.in { opacity: 1; transform: translateY(0); }
+      .js .bar-fill { transform: scaleX(0); transform-origin: left center; transition: transform .3s ease-out; }
+      .js .in .bar-fill { transform: scaleX(1); }
+
+      @media (min-width: 900px) {
+        .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+      }
+
+      .card {
+        background: var(--surface); border: 1px solid var(--line); border-radius: 12px;
+        padding: 26px; margin-bottom: 20px;
+      }
+      .card h2 { font-size: 17px; font-weight: 700; margin-bottom: 4px; }
+      .card .sub { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+
+      /* ---------- 智能参数推荐 ---------- */
+      .reco {
+        background: var(--surface); border: 1px solid var(--line-2); border-top: 4px solid var(--primary);
+        border-radius: 12px; padding: 28px; margin-bottom: 24px;
+      }
+      @media (max-width: 640px) { .reco { padding: 18px; } }
+      .reco-head { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 6px; }
+      .reco-head h2 { font-size: 21px; font-weight: 700; display: inline-flex; align-items: center; gap: 10px; }
+      .reco-head h2 .icon { width: 22px; height: 22px; color: var(--primary); }
+      .reco-mark {
+        font-size: 12px; font-weight: 600; color: var(--primary);
+        background: var(--primary-soft); border: 1px solid #BFDBFE; border-radius: 999px; padding: 3px 10px;
+      }
+      .reco-head p { color: var(--muted); font-size: 13.5px; margin: 4px 0 0; width: 100%; max-width: 820px; }
+      .reco-grid { display: grid; grid-template-columns: 5fr 7fr; gap: 24px; margin-top: 16px; align-items: start; }
+      .reco-grid > * { min-width: 0; }
+      @media (max-width: 900px) { .reco-grid { grid-template-columns: minmax(0, 1fr); } }
+
+      .field { margin-bottom: 14px; }
+      .field label, .field .lab { display: block; font-size: 13px; font-weight: 600; margin-bottom: 6px; color: var(--ink); }
+      .field .hint { font-weight: 400; color: var(--muted); font-size: 12px; margin-left: 6px; }
+      .field-error {
+        display: none; align-items: flex-start; gap: 6px;
+        color: var(--red); font-size: 12.5px; font-weight: 500; margin-top: 6px; line-height: 1.45;
+      }
+      .field-error.show { display: flex; }
+      .field-error .icon { width: 14px; height: 14px; margin-top: 2px; }
+      input[aria-invalid="true"] { border-color: var(--red) !important; }
+
+      textarea, select, input[type="text"], input[type="number"] {
+        width: 100%; padding: 8px 10px; border: 1px solid var(--line-2); border-radius: 8px;
+        background: var(--surface); color: var(--ink); font-family: var(--sans); font-size: 14px;
+        transition: border-color .2s, box-shadow .2s;
+      }
+      textarea { resize: vertical; line-height: 1.55; }
+      textarea::placeholder, input::placeholder { color: #94A3B8; }
+      textarea:focus, select:focus, input:focus { outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
+      .mono-input { font-family: var(--mono); }
+
+      .seg { display: flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
+      .seg button {
+        flex: 1; border: 0; background: var(--surface); color: var(--muted);
+        font-size: 13.5px; font-weight: 500; padding: 8px 6px;
+        transition: background-color .2s, color .2s;
+      }
+      .seg button + button { border-left: 1px solid var(--line); }
+      .seg button:hover { background: var(--surface-2); color: var(--ink); }
+      .seg button.on { background: var(--primary); color: #fff; font-weight: 600; }
+      .row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+      @media (max-width: 560px) { .row2 { grid-template-columns: 1fr; } }
+
+      .reco-out {
+        border: 1.5px dashed var(--line-2); border-radius: 10px; padding: 20px; min-height: 240px;
+        background: var(--bg);
+      }
+      .reco-out.filled { border: 1px solid var(--line-2); background: var(--surface); }
+      .ro-empty { color: var(--muted); font-size: 13.5px; }
+      .ro-empty .mono { color: var(--body); font-size: 12.5px; display: block; margin-top: 12px; line-height: 1.9; }
+      .ro-method { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+      .ro-method .rm-name { font-size: 22px; font-weight: 700; color: var(--ink); }
+      .ro-method .rm-conf {
+        font-family: var(--mono); font-size: 12px; font-weight: 600; color: #fff;
+        background: var(--cta); border-radius: 999px; padding: 3px 10px;
+      }
+      .ro-reason { font-size: 13.5px; color: var(--body); margin: 10px 0 14px; }
+      .ro-params { border-top: 1px solid var(--line); }
+      .ro-params .pr { display: grid; grid-template-columns: 92px 118px 1fr; gap: 10px; padding: 7px 0; border-bottom: 1px solid var(--line); font-size: 12.5px; align-items: baseline; }
+      .ro-params .pk { color: var(--muted); font-weight: 500; }
+      .ro-params .pv { font-family: var(--mono); font-weight: 600; color: var(--ink); word-break: break-all; }
+      .ro-params .pw { color: var(--muted); }
+      @media (max-width: 560px) {
+        .ro-params .pr { grid-template-columns: 84px 1fr; }
+        .ro-params .pw { grid-column: 1 / -1; }
+      }
+      .ro-notes { margin: 14px 0 0; padding: 0; list-style: none; }
+      .ro-notes li {
+        font-size: 12.5px; color: var(--amber); background: var(--amber-soft);
+        border: 1px solid #FDE68A; padding: 8px 12px; margin-bottom: 8px; border-radius: 8px;
+      }
+      .ro-apply { margin-top: 14px; }
+
+      /* ---------- Bento 网格 ---------- */
+      .bento { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; margin-bottom: 4px; }
+      .bento > * { min-width: 0; margin-bottom: 0; }
+      .span4 { grid-column: span 4; }
+      .span5 { grid-column: span 5; }
+      .span7 { grid-column: span 7; }
+      @media (max-width: 1023px) { .span4, .span5, .span7 { grid-column: span 12; } }
+      @media (min-width: 640px) and (max-width: 1023px) { .span4 { grid-column: span 6; } .span4:last-child { grid-column: span 12; } }
+
+      .mcard { display: flex; flex-direction: column; border-top: 4px solid var(--mc); }
+      .mcard .mk { font-size: 12.5px; font-weight: 600; color: var(--mc); display: inline-flex; align-items: center; gap: 7px; }
+      .mcard h3 { margin: 6px 0 6px; font-size: 19px; font-weight: 700; }
+      .mcard p { margin: 0 0 12px; color: var(--muted); font-size: 13.5px; flex: 1; }
+      .mcard .specs { border-top: 1px solid var(--line); padding-top: 10px; margin-bottom: 14px; }
+      .mcard .specs .r { display: flex; justify-content: space-between; gap: 10px; font-size: 12.5px; padding: 2.5px 0; }
+      .mcard .specs .r .k { color: var(--muted); }
+      .mcard .specs .r .v { font-family: var(--mono); font-weight: 600; text-align: right; color: var(--ink); }
+      .mcard .go { align-self: flex-start; }
+
+      /* 实测成绩：横向柱状图，降序 */
+      .bar-row { display: grid; grid-template-columns: 128px 1fr 56px; align-items: center; gap: 12px; padding: 8px 0; }
+      @media (max-width: 560px) { .bar-row { grid-template-columns: 100px 1fr 48px; gap: 8px; } }
+      .bar-row .bl { font-size: 13px; font-weight: 700; color: var(--ink); }
+      .bar-row .bl small { display: block; font-weight: 400; color: var(--muted); font-size: 11.5px; }
+      .bar-track { height: 22px; background: var(--surface-2); border-radius: 5px; overflow: hidden; }
+      .bar-fill { height: 100%; border-radius: 0 5px 5px 0; }
+      .bar-row .bv { font-family: var(--mono); font-weight: 600; font-size: 15px; text-align: right; color: var(--ink); }
+      .bar-row.pass .bv { color: var(--green); }
+      .pass-tag { font-size: 11px; font-weight: 700; color: var(--green); background: var(--green-soft); border-radius: 999px; padding: 1px 7px; margin-left: 6px; white-space: nowrap; }
+      .chart-note { color: var(--muted); font-size: 12.5px; margin-top: 10px; }
+
+      .flow { display: flex; flex-direction: column; gap: 10px; }
+      .step { border: 1px solid var(--line); border-radius: 8px; padding: 11px 13px; display: flex; gap: 11px; align-items: flex-start; }
+      .step .n {
+        font-family: var(--mono); font-weight: 600; font-size: 13px;
+        width: 26px; height: 26px; border-radius: 50%; flex: none;
+        display: flex; align-items: center; justify-content: center;
+        background: var(--primary-soft); color: var(--primary);
+      }
+      .step .t { font-weight: 700; font-size: 14px; line-height: 1.35; color: var(--ink); }
+      .step .d { color: var(--muted); font-size: 12.5px; line-height: 1.45; }
+      pre.fmt {
+        margin: 0; background: var(--surface-2); border-radius: 8px; padding: 12px 14px;
+        max-width: 100%; white-space: pre-wrap; word-break: break-all;
+        font-family: var(--mono); font-size: 12px; line-height: 1.7; color: var(--body);
+      }
+
+      /* ---------- 训练工作区 ---------- */
+      .ws-head { margin: 4px 0 20px; max-width: 780px; }
+      .ws-head h2 { font-size: 26px; font-weight: 700; line-height: 1.3; margin-bottom: 6px; display: flex; align-items: center; gap: 10px; }
+      .ws-head h2 .icon { width: 24px; height: 24px; color: var(--mc); }
+      .ws-head p { margin: 0; color: var(--muted); font-size: 14px; }
+      .facts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+      .fact {
+        font-size: 12.5px; background: var(--mc-soft); border-radius: 999px; padding: 4px 11px;
+        font-family: var(--mono); font-weight: 500; color: var(--ink);
+      }
+      .grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+      .grid > * { min-width: 0; }
+      @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+
+      .drop {
+        border: 1.5px dashed var(--line-2); border-radius: 10px;
+        padding: 26px 16px; text-align: center; cursor: pointer;
+        transition: border-color .2s, background-color .2s;
+      }
+      .drop:hover, .drop:focus-visible { border-color: var(--primary); background: var(--primary-soft); outline: none; }
+      .drop.drag { border-color: var(--primary); background: var(--primary-soft); }
+      .drop .icon { width: 28px; height: 28px; color: var(--muted); margin-bottom: 6px; }
+      .drop .big { font-weight: 700; font-size: 15px; color: var(--ink); }
+      .drop .small { color: var(--muted); font-size: 12.5px; margin-top: 4px; }
+      .drop .fmtline { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 8px; }
+      .drop input { display: none; }
+
+      .filebar { display: none; align-items: center; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+      .filebar.show { display: flex; }
+      .filebar .fname { font-family: var(--mono); font-size: 13px; font-weight: 600; word-break: break-all; color: var(--ink); }
+      .filebar .fmeta { color: var(--muted); font-size: 12.5px; font-family: var(--mono); }
+
+      .stats { display: none; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px; }
+      .stats.show { display: grid; }
+      @media (max-width: 560px) { .stats { grid-template-columns: 1fr 1fr; } }
+      .stat { background: var(--surface-2); border-radius: 8px; padding: 10px 12px; }
+      .stat .v { font-family: var(--mono); font-size: 20px; font-weight: 600; line-height: 1.2; color: var(--ink); }
+      .stat .k { color: var(--muted); font-size: 12px; }
+
+      .check { display: none; margin-top: 12px; border-radius: 8px; padding: 10px 12px; font-size: 13px; }
+      .check.show { display: block; }
+      .check.ok { background: var(--green-soft); color: #14532D; }
+      .check.bad { background: var(--red-soft); color: #7F1D1D; }
+      .check .mono { font-size: 12px; }
+      .check ul { margin: 6px 0 0; padding-left: 18px; }
+
+      .preview { display: none; margin-top: 14px; }
+      .preview.show { display: block; }
+      .preview .ph { font-size: 12.5px; color: var(--muted); margin-bottom: 6px; font-weight: 700; }
+      .rec { border: 1px solid var(--line); border-radius: 8px; padding: 10px 12px; margin-bottom: 8px; font-size: 13px; }
+      .rec .role { font-family: var(--mono); font-size: 11px; font-weight: 600; color: var(--mc); letter-spacing: .04em; }
+      .rec .txt { white-space: pre-wrap; word-break: break-word; margin-top: 2px; }
+
+      .slider-row { display: flex; align-items: center; gap: 12px; }
+      .slider-row input[type="range"] { flex: 1; accent-color: var(--primary); min-height: 2.25rem; }
+      .slider-row .val { font-family: var(--mono); font-size: 14px; font-weight: 600; min-width: 56px; text-align: right; color: var(--ink); }
+      .lr-ctl { display: flex; align-items: center; gap: 12px; }
+      .lr-ctl input[type="range"] { flex: 1; accent-color: var(--primary); min-height: 2.25rem; min-width: 0; }
+      .lr-ctl .lr-input { width: 118px; flex: none; text-align: right; font-weight: 600; }
+      @media (max-width: 480px) { .lr-ctl { flex-wrap: wrap; } .lr-ctl .lr-input { width: 100%; } }
+      .callout { background: var(--amber-soft); border: 1px solid #FDE68A; border-radius: 10px; padding: 12px 14px; font-size: 13px; color: var(--body); margin-bottom: 16px; }
+
+      /* ---------- 配置规格单 ---------- */
+      .spec {
+        background: var(--surface); border: 1px solid var(--line-2); border-radius: 12px;
+        overflow: hidden; position: sticky; top: 76px;
+      }
+      @media (max-width: 900px) { .spec { position: static; } }
+      .spec-head {
+        background: var(--ink); color: #fff;
+        font-weight: 700; font-size: 14px;
+        padding: 10px 16px; display: flex; justify-content: space-between; align-items: baseline; gap: 10px;
+      }
+      .spec-head .mono { font-size: 11px; font-weight: 500; opacity: .7; }
+      .spec-body { padding: 14px 16px 16px; }
+      .summary { font-size: 13px; }
+      .summary .r { display: flex; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px dashed var(--line); }
+      .summary .r:last-child { border-bottom: 0; }
+      .summary .r .k { color: var(--muted); }
+      .summary .r .v { font-family: var(--mono); font-weight: 600; text-align: right; color: var(--ink); word-break: break-all; }
+      .spec .btnrow { margin-top: 14px; }
+      .spec .submit-btn { width: 100%; }
+      .spec .submit-hint { color: var(--muted); font-size: 12.5px; margin: 10px 0 0; }
+
+      /* ---------- 按钮 ---------- */
+      .btn {
+        display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+        border-radius: 8px; border: 1px solid var(--line-2); background: var(--surface);
+        color: var(--ink); font-size: 14px; font-weight: 600;
+        padding: 9px 16px; text-decoration: none;
+        transition: background-color .2s, border-color .2s, color .2s;
+      }
+      .btn:hover { border-color: var(--muted); background: var(--surface-2); }
+      .btn.primary { background: var(--cta); border-color: var(--cta); color: #fff; }
+      .btn.primary:hover { background: var(--cta-deep); border-color: var(--cta-deep); }
+      .btn.primary:disabled { background: var(--surface-3); border-color: var(--line); color: var(--muted); cursor: not-allowed; }
+      .btn.dark { background: var(--primary); border-color: var(--primary); color: #fff; }
+      .btn.dark:hover { background: #1D4ED8; border-color: #1D4ED8; }
+      .btn.small { padding: 6px 12px; font-size: 13px; }
+      .btn:disabled { color: var(--muted); cursor: not-allowed; }
+      .btnrow { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 14px; }
+      .btn.reco-go { background: var(--cta); border-color: var(--cta); color: #fff; font-size: 15px; padding: 11px 22px; }
+      .btn.reco-go:hover { background: var(--cta-deep); border-color: var(--cta-deep); }
+
+      /* ---------- 任务队列 ---------- */
+      .jobs-wrap { margin-top: 20px; }
+      .empty {
+        border: 1.5px dashed var(--line-2); border-radius: 10px; padding: 28px 16px;
+        text-align: center; color: var(--muted); font-size: 13.5px;
+      }
+      .job { border: 1px solid var(--line); border-radius: 10px; padding: 14px 16px; margin-bottom: 10px; background: var(--surface); }
+      .job .top { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+      .job .jid { font-family: var(--mono); font-weight: 500; font-size: 12.5px; color: var(--muted); }
+      .job .jname { font-weight: 700; color: var(--ink); }
+      .mpill {
+        font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 3px 9px;
+        background: var(--mc-soft); color: var(--mc); white-space: nowrap;
+      }
+      .pill {
+        font-size: 11.5px; font-weight: 700; border-radius: 999px; padding: 3px 9px;
+        background: var(--amber-soft); color: var(--amber); white-space: nowrap;
+      }
+      .job .meta {
+        display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 8px;
+        font-size: 12.5px; color: var(--muted); font-family: var(--mono);
+      }
+      .job .acts { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+      .job .note { font-size: 12.5px; color: var(--muted); margin-top: 10px; }
+
+      .toast {
+        position: fixed; left: 50%; bottom: 22px; transform: translateX(-50%) translateY(16px);
+        background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 8px;
+        font-size: 13.5px; font-weight: 500; opacity: 0; pointer-events: none; transition: opacity .25s, transform .25s;
+        max-width: calc(100vw - 32px); text-align: center; z-index: 50;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, .18);
+      }
+      .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+      footer { color: var(--muted); font-size: 12.5px; text-align: center; margin-top: 24px; }
+      footer .mono { font-size: 12px; }
+
+      @media (prefers-reduced-motion: reduce) {
+        * { transition: none !important; scroll-behavior: auto !important; }
+        .js .rv { opacity: 1 !important; transform: none !important; }
+        .js .loss-path { stroke-dashoffset: 0 !important; }
+        .js .vis-prog-fill, .js .bar-fill { transform: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="wrap">
+
+      <header class="topbar">
+        <span class="tb-name"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2v4M12 18v4M2 12h4M18 12h4"/><circle cx="12" cy="12" r="4"/></svg>模型训练服务</span>
+        <span class="tb-tag">TRAINING CONSOLE</span>
+        <span class="spacer"></span>
+        <span class="tb-note">后端未接入</span>
+        <button class="btn primary small" type="button" data-enter-train>进入训练</button>
+      </header>
+
+      <button type="button" class="back-link view-off" data-view="train" data-back-home><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg>返回首页</button>
+
+                <!-- ================= 智能参数推荐 ================= -->
+        <section class="reco rv view-off" data-view="train" aria-labelledby="h-reco">
+          <div class="reco-head">
+            <h2 id="h-reco"><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 4.6L18.5 9l-4.6 1.4L12 15l-1.9-4.6L5.5 9l4.6-1.4L12 3Z"/><path d="M19 15.5l.8 2 2 .8-2 .8-.8 2-.8-2-2-.8 2-.8.8-2Z"/></svg>参数推荐</h2>
+            <span class="reco-mark">实测推荐</span>
+            
+          </div>
+          <div class="reco-grid">
+            <div>
+              <div class="field">
+                <label for="rc-desc">任务描述</label>
+                <textarea id="rc-desc" rows="3" placeholder="例如：客服话术问答"></textarea>
+              </div>
+              <div class="row2">
+                <div class="field">
+                  <span class="lab">数据类型</span>
+                  <div class="seg" id="rc-dtype" role="group" aria-label="数据类型">
+                    <button type="button" data-value="chat" class="on">对话 JSONL</button>
+                    <button type="button" data-value="text">纯文本</button>
+                  </div>
+                </div>
+                <div class="field">
+                  <label for="rc-count">样本数量</label>
+                  <input type="number" id="rc-count" min="1" step="1" placeholder="例如：183" aria-describedby="rc-count-error" />
+                  <p class="field-error" id="rc-count-error" role="alert">
+                    <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 9v4M12 17h.01"/><path d="M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg>
+                    <span>请填写样本数量，推荐需按数据量判断。</span>
+                  </p>
+                </div>
+              </div>
+              <div class="row2">
+                <div class="field">
+                  <label for="rc-base">基础模型</label>
+                  <select id="rc-base">
+                    <option value="Qwen3-1.7B">Qwen3-1.7B</option>
+                    <option value="Qwen3-8B" selected>Qwen3-8B</option>
+                    <option value="other">其他</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label for="rc-goal">期望目标</label>
+                  <select id="rc-goal">
+                    <option value="format" selected>学会格式与纪律</option>
+                    <option value="knowledge">学会新知识</option>
+                    <option value="style">换个说话风格</option>
+                    <option value="scratch">从零学一门语言或领域</option>
+                  </select>
+                </div>
+              </div>
+              <div class="field">
+                <span class="lab">可用算力</span>
+                <div class="seg" id="rc-compute" role="group" aria-label="可用算力">
+                  <button type="button" data-value="cpu" class="on">CPU · 64GB</button>
+                  <button type="button" data-value="gpu24">单卡 · 24GB</button>
+                  <button type="button" data-value="multi">多卡</button>
+                </div>
+              </div>
+              <button class="btn reco-go" type="button" id="rc-run">分析推荐</button>
+            </div>
+            <div class="reco-out" id="rc-out" aria-live="polite">
+              <div class="ro-empty">
+                填好左侧，点「分析推荐」。
+              </div>
+            </div>
+          </div>
+        </section>
+
+      <nav class="tabbar view-off" data-view="train" role="tablist" aria-label="训练方式切换">
+        <button type="button" role="tab" data-tab="lora" aria-selected="true"><svg class="icon sm" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2.2"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2.2"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2.2"/></svg>LoRA 微调</button>
+        <button type="button" role="tab" data-tab="full" aria-selected="false"><svg class="icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></svg>全参数微调</button>
+        <button type="button" role="tab" data-tab="pre" aria-selected="false"><svg class="icon sm" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>从零预训练</button>
+      </nav>
+
+      <!-- ================= 首页（独立落地页，无 tab 导航） ================= -->
+      <section data-view="home" aria-label="首页">
+        <div class="hero">
+          <div class="hero-copy rv">
+            <h1>上传数据，训一个你自己的模型</h1>
+            <p class="hero-sub">上传数据，选方式，其余交给训练机。</p>
+            <div class="btnrow">
+              <button class="btn reco-go" type="button" data-enter-train>进入训练<svg class="icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button>
+              <button class="btn" type="button" id="homeSample"><svg class="icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>下载示例</button>
+            </div>
+            <div class="hero-meta"><span>3 种训练方式</span><span>183 条实测样本</span><span>验收 3/3 通过</span></div>
+          </div>
+          <div class="hero-vis rv" style="transition-delay:.1s">
+            <div class="vis-card">
+              <div class="vis-head">
+                <span class="vis-title"><span class="vis-dot" aria-hidden="true"></span>TRAINING RUN</span>
+                <span class="vis-tag">实测跑通</span>
+              </div>
+              <svg class="vis-svg" viewBox="0 0 340 190" role="img" aria-label="验证集 loss 从 8.16 下降到 2.27 的曲线">
+                <line x1="20" y1="42" x2="322" y2="42"/>
+                <line x1="20" y1="92" x2="322" y2="92"/>
+                <line x1="20" y1="142" x2="322" y2="142"/>
+                <path class="loss-path" pathLength="1" d="M20 34 C 80 40, 120 66, 172 102 C 224 138, 276 156, 322 160"/>
+                <circle class="loss-dot" cx="20" cy="34" r="4"/>
+                <circle class="loss-dot end" cx="322" cy="160" r="4.5"/>
+                <text x="24" y="24">8.16</text>
+                <text x="258" y="148">2.27</text>
+              </svg>
+              <div class="vis-stats">
+                <div><span class="vs-v mono">8.16 → 2.27</span><span class="vs-k">验证集 loss</span></div>
+                <div><span class="vs-v mono">约 30M</span><span class="vs-k">参数规模</span></div>
+                <div><span class="vs-v mono">fp32</span><span class="vs-k">计算精度</span></div>
+              </div>
+              <div class="vis-prog-row"><span>训练进度</span><span class="mono">epoch 3 / 3</span></div>
+              <div class="vis-prog"><div class="vis-prog-fill"></div></div>
+              
+            </div>
+          </div>
+        </div>
+
+<section class="card rv" aria-labelledby="h-how">
+                    <h2 id="h-how">怎么用</h2>
+                    
+                    <div class="flow">
+                      <div class="step"><div class="n">1</div><div><div class="t">选方式</div><div class="d">或先用推荐器算一遍</div></div></div>
+                      <div class="step"><div class="n">2</div><div><div class="t">传数据</div><div class="d">本地校验，错行报行号</div></div></div>
+                      <div class="step"><div class="n">3</div><div><div class="t">配参数</div><div class="d">提交后进入队列</div></div></div>
+                      <div class="step"><div class="n">4</div><div><div class="t">下载模型</div><div class="d">完成后下载权重</div></div></div>
+                    </div>
+                  </section>
+
+        <section class="cta-band rv">
+          <div>
+            <h2>准备好，就开训。</h2>
+            
+          </div>
+          <button class="btn reco-go" type="button" data-enter-train>进入训练<svg class="icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg></button>
+        </section>
+      </section>
+
+      <!-- ================= LoRA 微调 ================= -->
+      <section class="panel on view-off" data-view="train" data-panel="lora" role="tabpanel" aria-label="LoRA 微调">
+        <div class="workspace" data-method="lora" data-kind="chat" style="--mc:var(--c-lora);--mc-soft:var(--c-lora-soft)">
+          <div class="ws-head">
+            <h2><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><line x1="4" y1="6" x2="20" y2="6"/><circle cx="9" cy="6" r="2.2"/><line x1="4" y1="12" x2="20" y2="12"/><circle cx="15" cy="12" r="2.2"/><line x1="4" y1="18" x2="20" y2="18"/><circle cx="7" cy="18" r="2.2"/></svg>LoRA 微调</h2>
+            <p>只训适配器，快、省显存。</p>
+            <div class="facts">
+              <span class="fact">可训练参数 ≈ 0.1%–1%</span>
+              <span class="fact">产物 · adapter.safetensors</span>
+              <span class="fact">推荐 lr · 1e-4 起步</span>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div>
+              <section class="card" aria-label="上传数据">
+                <h2>上传训练数据</h2>
+                <p class="sub">每行一条，messages 格式，本地校验。</p>
+                <div class="drop" role="button" tabindex="0" aria-label="选择或拖入训练数据文件">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 16l-4-4-4 4"/><path d="M12 12v9"/><path d="M20.4 15.4A5 5 0 0 0 18 7h-1.3A7 7 0 1 0 5 15.7"/></svg>
+                  <div class="big">点击或拖入文件</div>
+                  <div class="small">单个文件，最大 200 MB</div>
+                  <div class="fmtline">.jsonl · .json · UTF-8</div>
+                  <input type="file" class="file-input" accept=".jsonl,.json,.txt" />
+                </div>
+                <div class="filebar">
+                  <span class="fname"></span><span class="fmeta"></span>
+                  <button class="btn small clear-file" type="button">清除</button>
+                </div>
+                <div class="stats">
+                  <div class="stat"><div class="v st-count">–</div><div class="k">样本条数</div></div>
+                  <div class="stat"><div class="v st-tokens">–</div><div class="k">估算 token 总量</div></div>
+                  <div class="stat"><div class="v st-avg">–</div><div class="k">平均每条 token</div></div>
+                  <div class="stat"><div class="v st-four">–</div><div class="k">平均对话轮数</div></div>
+                </div>
+                <div class="check" aria-live="polite"></div>
+                <div class="preview"><div class="ph">数据预览（前 3 条）</div><div class="preview-list"></div></div>
+                <div class="btnrow"><button class="btn sample-btn" type="button"><svg class="icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>下载示例数据集</button></div>
+              </section>
+
+              <section class="card" aria-label="训练配置">
+                <h2>训练配置</h2>
+                <p class="sub">填好后看右侧确认。</p>
+                <div class="field">
+                  <label>任务名称</label>
+                  <input type="text" class="job-name" placeholder="例如：客服问答 LoRA v1" maxlength="40" />
+                </div>
+                <div class="field">
+                  <label>基础模型</label>
+                  <select data-field="base_model">
+                    <option value="">（未选择）</option>
+                    <option value="Qwen3-1.7B">Qwen3-1.7B（轻量，CPU 可跑）</option>
+                    <option value="Qwen3-8B" selected>Qwen3-8B（均衡）</option>
+                    <option value="Qwen3-32B">Qwen3-32B（需要 GPU）</option>
+                    <option value="Llama-3.1-8B">Llama-3.1-8B</option>
+                    <option value="Mistral-7B">Mistral-7B</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>LoRA rank <span class="hint">越大越强、越占显存</span></label>
+                  <div class="slider-row">
+                    <input type="range" data-field="lora_rank" min="4" max="64" step="4" value="16" />
+                    <span class="val" data-valfor="lora_rank">16</span>
+                  </div>
+                </div>
+                <div class="row2">
+                  <div class="field">
+                    <label>LoRA alpha</label>
+                    <select data-field="lora_alpha">
+                      <option value="16">16</option>
+                      <option value="32" selected>32（rank × 2）</option>
+                      <option value="64">64</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>目标模块</label>
+                    <select data-field="target_modules">
+                      <option value="q_proj,v_proj">q / v 投影</option>
+                      <option value="q_proj,k_proj,v_proj,o_proj" selected>q / k / v / o 投影</option>
+                      <option value="all-linear">全部线性层</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row2">
+                  <div class="field">
+                    <label>训练轮数 epochs</label>
+                    <input type="number" data-field="epochs" min="1" max="20" step="1" value="3" />
+                  </div>
+                  <div class="field">
+                    <label>批大小 batch size</label>
+                    <input type="number" data-field="batch_size" min="1" max="64" step="1" value="4" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label>学习率 learning rate <span class="hint">输入框值为准</span></label>
+                  <div class="lr-ctl">
+                    <input type="range" data-lr-range min="-5" max="-3" step="0.01" value="-4" aria-label="学习率滑杆（对数刻度）" />
+                    <input type="text" class="lr-input mono-input" data-field="learning_rate" value="1e-4" inputmode="text" aria-label="学习率数值" />
+                  </div>
+                </div>
+                <div class="row2">
+                  <div class="field">
+                    <label>最大序列长度 <span class="hint">超出截断</span></label>
+                    <select data-field="max_seq_len">
+                      <option value="256">256</option>
+                      <option value="512">512</option>
+                      <option value="1024">1024</option>
+                      <option value="2048" selected>2048</option>
+                      <option value="4096">4096</option>
+                      <option value="8192">8192</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>计算精度</label>
+                    <select data-field="precision">
+                      <option value="fp32" selected>fp32（CPU 必须选这个）</option>
+                      <option value="bf16">bf16（需要 GPU）</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <aside class="spec" aria-label="配置规格单">
+              <div class="spec-head">配置规格单<span class="mono">SPEC SHEET</span></div>
+              <div class="spec-body">
+                <div class="summary">
+                  <div class="r"><span class="k">数据集</span><span class="v sum-data">未上传</span></div>
+                  <div class="r"><span class="k">基础模型</span><span class="v sum-model">Qwen3-8B</span></div>
+                  <div class="r"><span class="k">微调方式</span><span class="v sum-method">LoRA · r=16</span></div>
+                  <div class="r"><span class="k">学习率</span><span class="v sum-lr">1e-4</span></div>
+                  <div class="r"><span class="k">轮数 · 批大小</span><span class="v sum-train">3 轮 · batch 4</span></div>
+                  <div class="r"><span class="k">最大序列长度</span><span class="v sum-len">2048</span></div>
+                  <div class="r"><span class="k">计算精度</span><span class="v sum-precision">fp32</span></div>
+                  <div class="r"><span class="k">估算训练步数</span><span class="v sum-steps">–</span></div>
+                </div>
+                <div class="btnrow"><button class="btn primary submit-btn" type="button" disabled>提交 LoRA 训练任务</button></div>
+                <p class="submit-hint">校验通过后可提交。</p>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 全参数微调 ================= -->
+      <section class="panel view-off" data-view="train" data-panel="full" role="tabpanel" aria-label="全参数微调">
+        <div class="workspace" data-method="full" data-kind="chat" style="--mc:var(--c-full);--mc-soft:var(--c-full-soft)">
+          <div class="ws-head">
+            <h2><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="M3 13l9 5 9-5"/></svg>全参数微调</h2>
+            <p>全部权重更新，拟合最强。</p>
+            <div class="facts">
+              <span class="fact">可训练参数 = 100%</span>
+              <span class="fact">产物 · 完整 safetensors 权重</span>
+              <span class="fact">推荐 lr · 2e-5 · fp32</span>
+            </div>
+          </div>
+
+          <div class="callout">全参内存约为权重的 3–4 倍；8B 请用 GPU。</div>
+
+          <div class="grid">
+            <div>
+              <section class="card" aria-label="上传数据">
+                <h2>上传训练数据</h2>
+                <p class="sub">每行一条，messages 格式，本地校验。</p>
+                <div class="drop" role="button" tabindex="0" aria-label="选择或拖入训练数据文件">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 16l-4-4-4 4"/><path d="M12 12v9"/><path d="M20.4 15.4A5 5 0 0 0 18 7h-1.3A7 7 0 1 0 5 15.7"/></svg>
+                  <div class="big">点击或拖入文件</div>
+                  <div class="small">单个文件，最大 200 MB</div>
+                  <div class="fmtline">.jsonl · .json · UTF-8</div>
+                  <input type="file" class="file-input" accept=".jsonl,.json,.txt" />
+                </div>
+                <div class="filebar">
+                  <span class="fname"></span><span class="fmeta"></span>
+                  <button class="btn small clear-file" type="button">清除</button>
+                </div>
+                <div class="stats">
+                  <div class="stat"><div class="v st-count">–</div><div class="k">样本条数</div></div>
+                  <div class="stat"><div class="v st-tokens">–</div><div class="k">估算 token 总量</div></div>
+                  <div class="stat"><div class="v st-avg">–</div><div class="k">平均每条 token</div></div>
+                  <div class="stat"><div class="v st-four">–</div><div class="k">平均对话轮数</div></div>
+                </div>
+                <div class="check" aria-live="polite"></div>
+                <div class="preview"><div class="ph">数据预览（前 3 条）</div><div class="preview-list"></div></div>
+                <div class="btnrow"><button class="btn sample-btn" type="button"><svg class="icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>下载示例数据集</button></div>
+              </section>
+
+              <section class="card" aria-label="训练配置">
+                <h2>训练配置</h2>
+                <p class="sub">填好后看右侧确认。</p>
+                <div class="field">
+                  <label>任务名称</label>
+                  <input type="text" class="job-name" placeholder="例如：策略模型全参 v2" maxlength="40" />
+                </div>
+                <div class="field">
+                  <label>基础模型</label>
+                  <select data-field="base_model">
+                    <option value="">（未选择）</option>
+                    <option value="Qwen3-1.7B" selected>Qwen3-1.7B（CPU 全参可跑）</option>
+                    <option value="Qwen3-8B">Qwen3-8B（需要 GPU）</option>
+                    <option value="Qwen3-32B">Qwen3-32B（多卡 GPU）</option>
+                    <option value="Llama-3.1-8B">Llama-3.1-8B</option>
+                    <option value="Mistral-7B">Mistral-7B</option>
+                  </select>
+                </div>
+                <div class="row2">
+                  <div class="field">
+                    <label>优化器</label>
+                    <select data-field="optimizer">
+                      <option value="adamw_torch" selected>AdamW</option>
+                      <option value="adamw_bnb_8bit">AdamW 8-bit（省显存）</option>
+                      <option value="sgd">SGD</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>权重衰减 weight decay</label>
+                    <input type="number" data-field="weight_decay" min="0" max="1" step="0.01" value="0.01" />
+                  </div>
+                </div>
+                <div class="field">
+                  <span class="lab">梯度检查点 <span class="hint">省显存，建议开</span></span>
+                  <div class="seg" data-seg="grad_ckpt" role="group" aria-label="梯度检查点">
+                    <button type="button" data-value="true" class="on">开启</button>
+                    <button type="button" data-value="false">关闭</button>
+                  </div>
+                </div>
+                <div class="row2">
+                  <div class="field">
+                    <label>训练轮数 epochs</label>
+                    <input type="number" data-field="epochs" min="1" max="20" step="1" value="3" />
+                  </div>
+                  <div class="field">
+                    <label>批大小 batch size</label>
+                    <input type="number" data-field="batch_size" min="1" max="64" step="1" value="4" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label>学习率 learning rate <span class="hint">输入框值为准</span></label>
+                  <div class="lr-ctl">
+                    <input type="range" data-lr-range min="-5.5" max="-3.5" step="0.01" value="-4.7" aria-label="学习率滑杆（对数刻度）" />
+                    <input type="text" class="lr-input mono-input" data-field="learning_rate" value="2e-5" inputmode="text" aria-label="学习率数值" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label>预热比例 warmup ratio</label>
+                  <div class="slider-row">
+                    <input type="range" data-field="warmup_ratio" min="0" max="0.3" step="0.01" value="0.03" />
+                    <span class="val" data-valfor="warmup_ratio">3%</span>
+                  </div>
+                </div>
+                <div class="row2">
+                  <div class="field">
+                    <label>最大序列长度 <span class="hint">超出截断</span></label>
+                    <select data-field="max_seq_len">
+                      <option value="256">256</option>
+                      <option value="512">512</option>
+                      <option value="1024">1024</option>
+                      <option value="2048" selected>2048</option>
+                      <option value="4096">4096</option>
+                      <option value="8192">8192</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>计算精度</label>
+                    <select data-field="precision">
+                      <option value="fp32" selected>fp32（实测通过配置）</option>
+                      <option value="bf16">bf16（需要 GPU）</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <aside class="spec" aria-label="配置规格单">
+              <div class="spec-head">配置规格单<span class="mono">SPEC SHEET</span></div>
+              <div class="spec-body">
+                <div class="summary">
+                  <div class="r"><span class="k">数据集</span><span class="v sum-data">未上传</span></div>
+                  <div class="r"><span class="k">基础模型</span><span class="v sum-model">Qwen3-1.7B</span></div>
+                  <div class="r"><span class="k">微调方式</span><span class="v sum-method">全参数 · AdamW</span></div>
+                  <div class="r"><span class="k">学习率</span><span class="v sum-lr">2e-5</span></div>
+                  <div class="r"><span class="k">轮数 · 批大小</span><span class="v sum-train">3 轮 · batch 4</span></div>
+                  <div class="r"><span class="k">最大序列长度</span><span class="v sum-len">2048</span></div>
+                  <div class="r"><span class="k">计算精度</span><span class="v sum-precision">fp32</span></div>
+                  <div class="r"><span class="k">估算训练步数</span><span class="v sum-steps">–</span></div>
+                </div>
+                <div class="btnrow"><button class="btn primary submit-btn" type="button" disabled>提交全参数训练任务</button></div>
+                <p class="submit-hint">校验通过后可提交。</p>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 从零预训练 ================= -->
+      <section class="panel view-off" data-view="train" data-panel="pre" role="tabpanel" aria-label="从零预训练">
+        <div class="workspace" data-method="pre" data-kind="text" style="--mc:var(--c-pre);--mc-soft:var(--c-pre-soft)">
+          <div class="ws-head">
+            <h2><svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="5" width="14" height="14" rx="2"/><path d="M9 2v3M15 2v3M9 19v3M15 19v3M2 9h3M2 15h3M19 9h3M19 15h3"/></svg>从零预训练</h2>
+            <p>从随机初始化训一个小模型。</p>
+            <div class="facts">
+              <span class="fact">架构 · Decoder-only Transformer</span>
+              <span class="fact">产物 · 完整 safetensors 权重</span>
+              <span class="fact">参考跑通 · 30M 参数 / loss 2.27</span>
+            </div>
+          </div>
+
+          <div class="grid">
+            <div>
+              <section class="card" aria-label="上传语料">
+                <h2>上传训练语料</h2>
+                <p class="sub">每行一段文本，本地校验。</p>
+                <div class="drop" role="button" tabindex="0" aria-label="选择或拖入语料文件">
+                  <svg class="icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M16 16l-4-4-4 4"/><path d="M12 12v9"/><path d="M20.4 15.4A5 5 0 0 0 18 7h-1.3A7 7 0 1 0 5 15.7"/></svg>
+                  <div class="big">点击或拖入文件</div>
+                  <div class="small">单个文件，最大 200 MB</div>
+                  <div class="fmtline">.txt · .jsonl · UTF-8</div>
+                  <input type="file" class="file-input" accept=".txt,.jsonl,.json" />
+                </div>
+                <div class="filebar">
+                  <span class="fname"></span><span class="fmeta"></span>
+                  <button class="btn small clear-file" type="button">清除</button>
+                </div>
+                <div class="stats">
+                  <div class="stat"><div class="v st-count">–</div><div class="k">文本条数</div></div>
+                  <div class="stat"><div class="v st-tokens">–</div><div class="k">估算 token 总量</div></div>
+                  <div class="stat"><div class="v st-avg">–</div><div class="k">平均每条 token</div></div>
+                  <div class="stat"><div class="v st-four">–</div><div class="k">总字符数</div></div>
+                </div>
+                <div class="check" aria-live="polite"></div>
+                <div class="preview"><div class="ph">语料预览（前 3 条）</div><div class="preview-list"></div></div>
+                <div class="btnrow"><button class="btn sample-btn" type="button"><svg class="icon sm" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v12"/><path d="m7 11 5 5 5-5"/><path d="M4 21h16"/></svg>下载示例语料</button></div>
+              </section>
+
+              <section class="card" aria-label="模型与训练配置">
+                <h2>模型架构与训练</h2>
+                <p class="sub">填好后看右侧确认。</p>
+                <div class="field">
+                  <label>任务名称</label>
+                  <input type="text" class="job-name" placeholder="例如：故事语料小模型 v1" maxlength="40" />
+                </div>
+                <div class="field">
+                  <label>模型规模</label>
+                  <select data-field="arch_size">
+                    <option value="tiny">微型 · 约 10M 参数（最快验证）</option>
+                    <option value="small" selected>小型 · 约 30M 参数（参考配置）</option>
+                    <option value="base">中型 · 约 110M 参数（需要更久）</option>
+                  </select>
+                </div>
+                <div class="field">
+                  <label>Transformer 层数</label>
+                  <div class="slider-row">
+                    <input type="range" data-field="n_layer" min="2" max="24" step="1" value="6" />
+                    <span class="val" data-valfor="n_layer">6</span>
+                  </div>
+                </div>
+                <div class="row2">
+                  <div class="field">
+                    <label>隐藏维度</label>
+                    <select data-field="n_embd">
+                      <option value="256">256</option>
+                      <option value="512" selected>512</option>
+                      <option value="768">768</option>
+                      <option value="1024">1024</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>分词方式</label>
+                    <select data-field="tokenizer">
+                      <option value="char" selected>字符级（小语料友好）</option>
+                      <option value="bpe">BPE（需先训分词器）</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="row2">
+                  <div class="field">
+                    <label>训练轮数 epochs</label>
+                    <input type="number" data-field="epochs" min="1" max="50" step="1" value="3" />
+                  </div>
+                  <div class="field">
+                    <label>批大小 batch size</label>
+                    <input type="number" data-field="batch_size" min="1" max="128" step="1" value="32" />
+                  </div>
+                </div>
+                <div class="field">
+                  <label>学习率 learning rate <span class="hint">输入框值为准</span></label>
+                  <div class="lr-ctl">
+                    <input type="range" data-lr-range min="-4.5" max="-2.5" step="0.01" value="-3.52" aria-label="学习率滑杆（对数刻度）" />
+                    <input type="text" class="lr-input mono-input" data-field="learning_rate" value="3e-4" inputmode="text" aria-label="学习率数值" />
+                  </div>
+                </div>
+                <div class="row2">
+                  <div class="field">
+                    <label>上下文长度 <span class="hint">语料按此长度切块</span></label>
+                    <select data-field="block_size">
+                      <option value="256">256</option>
+                      <option value="512" selected>512</option>
+                      <option value="1024">1024</option>
+                    </select>
+                  </div>
+                  <div class="field">
+                    <label>计算精度</label>
+                    <select data-field="precision">
+                      <option value="fp32" selected>fp32（CPU 参考配置）</option>
+                      <option value="bf16">bf16（需要 GPU）</option>
+                    </select>
+                  </div>
+                </div>
+              </section>
+            </div>
+
+            <aside class="spec" aria-label="配置规格单">
+              <div class="spec-head">配置规格单<span class="mono">SPEC SHEET</span></div>
+              <div class="spec-body">
+                <div class="summary">
+                  <div class="r"><span class="k">语料</span><span class="v sum-data">未上传</span></div>
+                  <div class="r"><span class="k">模型规模</span><span class="v sum-model">小型 · 约 30M</span></div>
+                  <div class="r"><span class="k">架构</span><span class="v sum-method">6 层 · 512 维</span></div>
+                  <div class="r"><span class="k">学习率</span><span class="v sum-lr">3e-4</span></div>
+                  <div class="r"><span class="k">轮数 · 批大小</span><span class="v sum-train">3 轮 · batch 32</span></div>
+                  <div class="r"><span class="k">上下文长度</span><span class="v sum-len">512</span></div>
+                  <div class="r"><span class="k">计算精度</span><span class="v sum-precision">fp32</span></div>
+                  <div class="r"><span class="k">估算训练步数</span><span class="v sum-steps">–</span></div>
+                </div>
+                <div class="btnrow"><button class="btn primary submit-btn" type="button" disabled>提交预训练任务</button></div>
+                <p class="submit-hint">校验通过后可提交。</p>
+              </div>
+            </aside>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= 任务列表（训练页内） ================= -->
+      <section class="card jobs-wrap view-off" data-view="train" aria-labelledby="h-jobs">
+        <h2 id="h-jobs">我的训练任务</h2>
+        <p class="sub">提交的任务都在这里。</p>
+        <div id="jobList">
+          <div class="empty">还没有任务。</div>
+        </div>
+      </section>
+
+      <footer><span class="mono">frontend v0.4 · backend pending</span></footer>
+    </div>
+
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+    <script>
+      (function () {
+        "use strict";
+
+        var $ = function (id) { return document.getElementById(id); };
+        var jobs = [];
+
+        var METHOD_INFO = {
+          lora: { label: "LoRA 微调", vars: "--mc:var(--c-lora);--mc-soft:var(--c-lora-soft)" },
+          full: { label: "全参数微调", vars: "--mc:var(--c-full);--mc-soft:var(--c-full-soft)" },
+          pre:  { label: "从零预训练", vars: "--mc:var(--c-pre);--mc-soft:var(--c-pre-soft)" }
+        };
+        var ARCH_LABEL = { tiny: "微型 · 约 10M 参数", small: "小型 · 约 30M 参数", base: "中型 · 约 110M 参数" };
+        var ARCH_SHORT = { tiny: "微型 · 约 10M", small: "小型 · 约 30M", base: "中型 · 约 110M" };
+        var OPT_LABEL = { adamw_torch: "AdamW", adamw_bnb_8bit: "AdamW 8-bit", sgd: "SGD" };
+
+        function toast(msg) {
+          var t = $("toast");
+          t.textContent = msg;
+          t.classList.add("show");
+          clearTimeout(t._h);
+          t._h = setTimeout(function () { t.classList.remove("show"); }, 2600);
+        }
+        function fmtNum(n) {
+          if (n >= 10000) return (n / 10000).toFixed(1).replace(/\.0$/, "") + " 万";
+          return String(n);
+        }
+        function fmtBytes(b) {
+          if (b < 1024) return b + " B";
+          if (b < 1024 * 1024) return (b / 1024).toFixed(1) + " KB";
+          return (b / 1024 / 1024).toFixed(2) + " MB";
+        }
+        function estTokens(text) {
+          var cjk = 0, other = 0;
+          for (var i = 0; i < text.length; i++) {
+            if (text.charCodeAt(i) > 0x2e7f) cjk++; else other++;
+          }
+          return Math.ceil(cjk + other / 4);
+        }
+        function escapeHtml(s) {
+          return String(s).replace(/[&<>"']/g, function (c) {
+            return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+          });
+        }
+        function downloadBlob(blob, filename) {
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement("a");
+          a.href = url; a.download = filename;
+          document.body.appendChild(a); a.click();
+          document.body.removeChild(a);
+          setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+        }
+        /* 把任意正数格式化成 2e-5 / 3e-4 这种科学计数法（尾数 1 位小数，去掉 .0） */
+        function fmtSci(x) {
+          if (!(x > 0) || !isFinite(x)) return "–";
+          var exp = Math.floor(Math.log10(x));
+          var mant = x / Math.pow(10, exp);
+          mant = Math.round(mant * 10) / 10;
+          if (mant >= 10) { mant = 1; exp += 1; }
+          if (mant < 1) { mant = 10; exp -= 1; }
+          var m = String(mant).replace(/\.0$/, "");
+          return m + "e" + exp;
+        }
+        function fmtSciFromLog(logv) {
+          return fmtSci(Math.pow(10, logv));
+        }
+
+        /* ---------------- 视图与标签页切换 ----------------
+           首页是独立落地页（无 tab 导航）；训练页是另一个视图，
+           里面才有 LoRA / 全参数 / 预训练三个 tab 和任务队列。 */
+
+        var currentTab = "lora";
+
+        function showView(view) {
+          document.querySelectorAll("[data-view]").forEach(function (el) {
+            el.classList.toggle("view-off", el.getAttribute("data-view") !== view);
+          });
+          window.scrollTo({ top: 0, behavior: RM ? "auto" : "smooth" });
+        }
+        function activateTab(name) {
+          currentTab = name;
+          document.querySelectorAll(".tabbar [data-tab]").forEach(function (b) {
+            b.setAttribute("aria-selected", b.getAttribute("data-tab") === name ? "true" : "false");
+          });
+          document.querySelectorAll("[data-panel]").forEach(function (p) {
+            p.classList.toggle("on", p.getAttribute("data-panel") === name);
+          });
+        }
+        function enterTrain(tab) {
+          if (tab) activateTab(tab);
+          showView("train");
+        }
+        function goHome() { showView("home"); }
+
+        document.querySelectorAll("[data-tab]").forEach(function (b) {
+          b.addEventListener("click", function () { activateTab(b.getAttribute("data-tab")); });
+        });
+        document.querySelectorAll("[data-goto]").forEach(function (b) {
+          b.addEventListener("click", function () { enterTrain(b.getAttribute("data-goto")); });
+        });
+        document.querySelectorAll("[data-enter-train]").forEach(function (b) {
+          b.addEventListener("click", function () { enterTrain(); });
+        });
+        document.querySelectorAll("[data-back-home]").forEach(function (b) {
+          b.addEventListener("click", function () { goHome(); });
+        });
+
+        /* ---------------- 滚动显现（入场淡入 + 上移，ease-out） ----------------
+           三重触发：IntersectionObserver 为主，滚动时按位置兜底检查，
+           600ms 后仍未显现的强制显现——任何环境下内容都不会被卡在不可见状态。 */
+        var RM = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+        var rvEls = document.querySelectorAll(".rv");
+        function revealEl(el) { el.classList.add("in"); }
+        if (RM || !("IntersectionObserver" in window)) {
+          rvEls.forEach(revealEl);
+        } else {
+          var io = new IntersectionObserver(function (entries) {
+            entries.forEach(function (en) {
+              if (en.isIntersecting) { revealEl(en.target); io.unobserve(en.target); }
+            });
+          }, { threshold: 0.05, rootMargin: "0px 0px 12% 0px" });
+          rvEls.forEach(function (el) { io.observe(el); });
+          var checkRv = function () {
+            rvEls.forEach(function (el) {
+              if (el.classList.contains("in")) return;
+              var r = el.getBoundingClientRect();
+              if (r.top < window.innerHeight * 1.05 && r.bottom > 0) revealEl(el);
+            });
+          };
+          window.addEventListener("scroll", checkRv, { passive: true });
+          window.addEventListener("resize", checkRv);
+          window.addEventListener("wheel", checkRv, { passive: true });
+          window.addEventListener("touchmove", checkRv, { passive: true });
+          document.addEventListener("DOMContentLoaded", checkRv);
+          checkRv();
+          setTimeout(function () { rvEls.forEach(revealEl); }, 600);
+        }
+
+        /* ---------------- 示例数据 ---------------- */
+
+        function chatSampleText() {
+          var samples = [
+            { messages: [
+              { role: "system", content: "你是一个简洁专业的助手，回答控制在三句话以内。" },
+              { role: "user", content: "什么是 LoRA 微调？" },
+              { role: "assistant", content: "LoRA 是一种参数高效微调方法：冻结原模型权重，只训练插入的低秩矩阵。它显存占用小、训练快，训完得到一个很小的适配器文件，加载到原模型上即可使用。" }
+            ]},
+            { messages: [
+              { role: "user", content: "训练数据为什么要用 JSONL 格式？" },
+              { role: "assistant", content: "JSONL 每行是一个独立的 JSON 对象，方便流式读取和逐条校验：某一行写错了不会影响其他行，定位问题也只需要报行号。" }
+            ]},
+            { messages: [
+              { role: "user", content: "学习率设得太大会怎么样？" },
+              { role: "assistant", content: "学习率太大会让 loss 震荡甚至发散，模型学不到东西还可能把原有能力训坏。一般 LoRA 用 1e-4 到 2e-4，全参数微调用更小的值。" }
+            ]}
+          ];
+          return samples.map(function (s) { return JSON.stringify(s); }).join("\n") + "\n";
+        }
+        function textSampleText() {
+          var lines = [
+            "小松鼠米米住在山坡上的一棵大松树里。每天清晨，它都会先去溪边洗脸，再爬回树洞吃一颗松果当早餐。",
+            "下雨天，米米把尾巴举过头顶当伞，沿着湿漉漉的小路去看望刺猬奶奶，还带了一小篮刚摘的野草莓。",
+            "冬天快到的时候，米米把松果一颗一颗埋进土里。它在每处藏点旁边都放了一块小石子，这样开春就不会找不到啦。"
+          ];
+          return lines.map(function (t) { return JSON.stringify({ text: t }); }).join("\n") + "\n";
+        }
+        $("homeSample").addEventListener("click", function () {
+          downloadBlob(new Blob([chatSampleText()], { type: "application/json" }), "sample_dataset.jsonl");
+          toast("示例已下载");
+        });
+
+        /* ---------------- 数据解析 ---------------- */
+
+        function parseChat(text) {
+          var lines = text.split(/\r?\n/);
+          var records = [], errors = [], totalTokens = 0, totalTurns = 0, dataLines = 0;
+          for (var i = 0; i < lines.length; i++) {
+            var raw = lines[i].trim();
+            if (!raw) continue;
+            dataLines++;
+            var obj;
+            try { obj = JSON.parse(raw); }
+            catch (e) {
+              if (errors.length < 8) errors.push("第 " + (i + 1) + " 行：不是合法 JSON");
+              continue;
+            }
+            var msgs = obj && obj.messages;
+            if (!Array.isArray(msgs) || msgs.length < 2) {
+              if (errors.length < 8) errors.push("第 " + (i + 1) + " 行：缺少 messages 数组（至少 2 条）");
+              continue;
+            }
+            var bad = null;
+            for (var j = 0; j < msgs.length; j++) {
+              var m = msgs[j];
+              if (!m || typeof m.role !== "string" || typeof m.content !== "string" || !m.content.trim()) {
+                bad = "第 " + (i + 1) + " 行：第 " + (j + 1) + " 条消息缺少 role 或 content";
+                break;
+              }
+            }
+            if (bad) { if (errors.length < 8) errors.push(bad); continue; }
+            var hasUser = msgs.some(function (m) { return m.role === "user"; });
+            var hasAsst = msgs.some(function (m) { return m.role === "assistant"; });
+            if (!hasUser || !hasAsst) {
+              if (errors.length < 8) errors.push("第 " + (i + 1) + " 行：需要同时包含 user 与 assistant 消息");
+              continue;
+            }
+            var t = 0;
+            msgs.forEach(function (m) { t += estTokens(m.content); });
+            totalTokens += t;
+            totalTurns += msgs.length;
+            records.push(msgs);
+          }
+          return {
+            records: records, errors: errors, totalTokens: totalTokens,
+            avgTokens: records.length ? Math.round(totalTokens / records.length) : 0,
+            four: records.length ? (totalTurns / records.length).toFixed(1) : "–",
+            validCount: records.length,
+            errorCount: dataLines - records.length,
+            ok: records.length > 0 && dataLines - records.length === 0
+          };
+        }
+
+        function parseText(text) {
+          var lines = text.split(/\r?\n/);
+          var records = [], errors = [], totalTokens = 0, totalChars = 0, dataLines = 0;
+          for (var i = 0; i < lines.length; i++) {
+            var raw = lines[i].trim();
+            if (!raw) continue;
+            dataLines++;
+            var content = raw;
+            if (raw.charAt(0) === "{") {
+              var obj;
+              try { obj = JSON.parse(raw); }
+              catch (e) {
+                if (errors.length < 8) errors.push("第 " + (i + 1) + " 行：不是合法 JSON");
+                continue;
+              }
+              if (!obj || typeof obj.text !== "string" || !obj.text.trim()) {
+                if (errors.length < 8) errors.push("第 " + (i + 1) + " 行：JSON 格式需要 text 字段且不能为空");
+                continue;
+              }
+              content = obj.text;
+            }
+            totalTokens += estTokens(content);
+            totalChars += content.length;
+            records.push([{ role: "text", content: content }]);
+          }
+          return {
+            records: records, errors: errors, totalTokens: totalTokens,
+            avgTokens: records.length ? Math.round(totalTokens / records.length) : 0,
+            four: fmtNum(totalChars),
+            validCount: records.length,
+            errorCount: dataLines - records.length,
+            ok: records.length > 0 && dataLines - records.length === 0
+          };
+        }
+
+        /* ---------------- 工作区（每个训练页一份） ---------------- */
+
+        document.querySelectorAll(".workspace").forEach(function (ws) {
+          var method = ws.getAttribute("data-method");
+          var kind = ws.getAttribute("data-kind");
+          var state = { file: null, segs: {} };
+
+          var drop = ws.querySelector(".drop");
+          var fileInput = ws.querySelector(".file-input");
+
+          function q(sel) { return ws.querySelector(sel); }
+          function qa(sel) { return ws.querySelectorAll(sel); }
+          function setTxt(sel, txt) { var el = q(sel); if (el) el.textContent = txt; }
+
+          /* 上传 */
+          drop.addEventListener("click", function () { fileInput.click(); });
+          drop.addEventListener("keydown", function (e) {
+            if (e.key === "Enter" || e.key === " ") { e.preventDefault(); fileInput.click(); }
+          });
+          ["dragenter", "dragover"].forEach(function (ev) {
+            drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add("drag"); });
+          });
+          ["dragleave", "drop"].forEach(function (ev) {
+            drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove("drag"); });
+          });
+          drop.addEventListener("drop", function (e) {
+            var f = e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0];
+            if (f) handleFile(f);
+          });
+          fileInput.addEventListener("change", function () {
+            if (fileInput.files[0]) handleFile(fileInput.files[0]);
+            fileInput.value = "";
+          });
+
+          function handleFile(f) {
+            if (f.size > 200 * 1024 * 1024) { toast("文件超过 200 MB 上限"); return; }
+            var reader = new FileReader();
+            reader.onload = function () {
+              var parsed = kind === "text" ? parseText(String(reader.result || "")) : parseChat(String(reader.result || ""));
+              parsed.name = f.name;
+              parsed.size = f.size;
+              state.file = parsed;
+              renderFile();
+              updateSummary();
+            };
+            reader.onerror = function () { toast("文件读取失败，请重试"); };
+            reader.readAsText(f, "UTF-8");
+          }
+
+          function renderFile() {
+            var d = state.file;
+            if (!d) return;
+            q(".filebar").classList.add("show");
+            q(".fname").textContent = d.name;
+            q(".fmeta").textContent = fmtBytes(d.size);
+            q(".stats").classList.add("show");
+            q(".st-count").textContent = fmtNum(d.validCount);
+            q(".st-tokens").textContent = fmtNum(d.totalTokens);
+            q(".st-avg").textContent = fmtNum(d.avgTokens);
+            q(".st-four").textContent = d.four;
+
+            var chk = q(".check");
+            chk.classList.add("show");
+            var unit = kind === "text" ? "段文本" : "条样本";
+            if (d.ok) {
+              chk.className = "check show ok";
+              chk.textContent = "校验通过：" + d.validCount + " " + unit + "，可提交。";
+            } else if (d.validCount > 0) {
+              chk.className = "check show bad";
+              chk.innerHTML = d.validCount + " " + unit + "合格，" + d.errorCount + " 条有问题，修正后重传：" +
+                "<ul>" + d.errors.map(function (e) { return "<li class=\"mono\">" + escapeHtml(e) + "</li>"; }).join("") + "</ul>";
+            } else {
+              chk.className = "check show bad";
+              chk.innerHTML = "没有解析出合格内容，请检查文件格式。" +
+                (d.errors.length ? "<ul>" + d.errors.map(function (e) { return "<li class=\"mono\">" + escapeHtml(e) + "</li>"; }).join("") + "</ul>" : "");
+            }
+
+            var pv = q(".preview");
+            if (d.records.length) {
+              pv.classList.add("show");
+              q(".preview-list").innerHTML = d.records.slice(0, 3).map(function (msgs) {
+                return "<div class=\"rec\">" + msgs.map(function (m) {
+                  return "<div><span class=\"role\">" + escapeHtml(m.role) + "</span><div class=\"txt\">" +
+                    escapeHtml(m.content.length > 220 ? m.content.slice(0, 220) + "…" : m.content) + "</div></div>";
+                }).join("") + "</div>";
+              }).join("");
+            } else {
+              pv.classList.remove("show");
+            }
+
+            q(".submit-btn").disabled = !d.ok;
+            q(".submit-hint").textContent = d.ok
+              ? "已就绪，可提交。"
+              : "需全部校验通过（当前 " + d.errorCount + " 条有问题）。";
+          }
+
+          q(".clear-file").addEventListener("click", function () {
+            state.file = null;
+            q(".filebar").classList.remove("show");
+            q(".stats").classList.remove("show");
+            q(".check").classList.remove("show");
+            q(".preview").classList.remove("show");
+            q(".submit-btn").disabled = true;
+            q(".submit-hint").textContent = kind === "text"
+              ? "校验通过后可提交。"
+              : "校验通过后可提交。";
+            updateSummary();
+          });
+
+          q(".sample-btn").addEventListener("click", function () {
+            if (kind === "text") {
+              downloadBlob(new Blob([textSampleText()], { type: "application/json" }), "sample_corpus.jsonl");
+              toast("示例语料已下载");
+            } else {
+              downloadBlob(new Blob([chatSampleText()], { type: "application/json" }), "sample_dataset.jsonl");
+              toast("示例数据集已下载");
+            }
+          });
+
+          /* 分段开关（如梯度检查点） */
+          qa("[data-seg]").forEach(function (seg) {
+            var name = seg.getAttribute("data-seg");
+            var onBtn = seg.querySelector("button.on");
+            state.segs[name] = onBtn ? onBtn.getAttribute("data-value") : null;
+            seg.addEventListener("click", function (e) {
+              var b = e.target.closest("button[data-value]");
+              if (!b) return;
+              state.segs[name] = b.getAttribute("data-value");
+              seg.querySelectorAll("button").forEach(function (x) { x.classList.toggle("on", x === b); });
+              updateSummary();
+            });
+          });
+
+          /* 普通滑杆数值显示（rank / 层数 / 预热比例） */
+          qa("[data-valfor]").forEach(function (lab) {
+            var name = lab.getAttribute("data-valfor");
+            var input = ws.querySelector("[data-field=\"" + name + "\"]");
+            if (!input) return;
+            var show = function () {
+              var v = parseFloat(input.value);
+              if (name === "warmup_ratio") lab.textContent = Math.round(v * 100) + "%";
+              else lab.textContent = String(v);
+            };
+            input.addEventListener("input", function () { show(); updateSummary(); });
+            show();
+          });
+
+          /* 学习率：滑杆（对数刻度，步长 0.01）+ 数字输入框。
+             输入框是唯一真值：滑杆只负责写出格式化后的近似值，
+             推荐器填入时直接写输入框，2e-5 就是 2e-5，不会被滑杆吸附改掉。 */
+          var lrRange = ws.querySelector("[data-lr-range]");
+          var lrInput = ws.querySelector("[data-field=\"learning_rate\"]");
+          if (lrRange && lrInput) {
+            lrRange.addEventListener("input", function () {
+              lrInput.value = fmtSciFromLog(parseFloat(lrRange.value));
+              updateSummary();
+            });
+            lrInput.addEventListener("input", function () {
+              var v = parseFloat(lrInput.value);
+              if (v > 0 && isFinite(v)) lrRange.value = String(Math.log10(v));
+              updateSummary();
+            });
+            lrInput.addEventListener("change", function () {
+              var v = parseFloat(lrInput.value);
+              if (v > 0 && isFinite(v)) lrInput.value = fmtSci(v);
+              updateSummary();
+            });
+          }
+
+          qa("[data-field]").forEach(function (el) {
+            if (el === lrInput) return; /* 学习率输入框已单独绑定 */
+            el.addEventListener("input", updateSummary);
+            el.addEventListener("change", updateSummary);
+          });
+
+          function fieldVal(name) {
+            var el = ws.querySelector("[data-field=\"" + name + "\"]");
+            if (!el) return null;
+            return el.value;
+          }
+          function intVal(name, fallback) {
+            var v = parseInt(fieldVal(name), 10);
+            return isNaN(v) ? fallback : Math.max(1, v);
+          }
+          function lrVal() {
+            var v = parseFloat(fieldVal("learning_rate"));
+            return v > 0 && isFinite(v) ? v : 0;
+          }
+
+          function currentConfig() {
+            var lr = lrVal();
+            if (method === "lora") {
+              return {
+                method: "lora",
+                base_model: fieldVal("base_model"),
+                lora_rank: intVal("lora_rank", 16),
+                lora_alpha: intVal("lora_alpha", 32),
+                target_modules: String(fieldVal("target_modules")).split(","),
+                epochs: intVal("epochs", 3),
+                batch_size: intVal("batch_size", 4),
+                learning_rate: lr,
+                max_seq_len: intVal("max_seq_len", 2048),
+                precision: fieldVal("precision") || "fp32"
+              };
+            }
+            if (method === "full") {
+              return {
+                method: "full",
+                base_model: fieldVal("base_model"),
+                optimizer: fieldVal("optimizer"),
+                weight_decay: parseFloat(fieldVal("weight_decay")) || 0,
+                gradient_checkpointing: state.segs.grad_ckpt !== "false",
+                epochs: intVal("epochs", 3),
+                batch_size: intVal("batch_size", 4),
+                learning_rate: lr,
+                warmup_ratio: parseFloat(fieldVal("warmup_ratio")) || 0,
+                max_seq_len: intVal("max_seq_len", 2048),
+                precision: fieldVal("precision") || "fp32"
+              };
+            }
+            return {
+              method: "pretrain",
+              arch_size: fieldVal("arch_size"),
+              n_layer: intVal("n_layer", 6),
+              n_embd: intVal("n_embd", 512),
+              tokenizer: fieldVal("tokenizer"),
+              epochs: intVal("epochs", 3),
+              batch_size: intVal("batch_size", 32),
+              learning_rate: lr,
+              block_size: intVal("block_size", 512),
+              precision: fieldVal("precision") || "fp32"
+            };
+          }
+
+          function updateSummary() {
+            var cfg = currentConfig();
+            q(".sum-data").textContent = state.file ? state.file.name + " · " + state.file.validCount + " 条" : "未上传";
+            if (method === "pre") {
+              q(".sum-model").textContent = ARCH_SHORT[cfg.arch_size] || cfg.arch_size;
+              q(".sum-method").textContent = cfg.n_layer + " 层 · " + cfg.n_embd + " 维 · " + (cfg.tokenizer === "bpe" ? "BPE" : "字符级");
+            } else {
+              q(".sum-model").textContent = cfg.base_model ? cfg.base_model : "未选择";
+              q(".sum-method").textContent = method === "lora"
+                ? "LoRA · r=" + cfg.lora_rank + " · α=" + cfg.lora_alpha
+                : "全参数 · " + (OPT_LABEL[cfg.optimizer] || cfg.optimizer);
+            }
+            setTxt(".sum-lr", fmtSci(cfg.learning_rate));
+            setTxt(".sum-train", cfg.epochs + " 轮 · batch " + cfg.batch_size);
+            setTxt(".sum-len", method === "pre" ? String(cfg.block_size) : String(cfg.max_seq_len));
+            setTxt(".sum-precision", cfg.precision);
+            if (state.file && state.file.validCount > 0) {
+              q(".sum-steps").textContent = fmtNum(Math.ceil(state.file.validCount * cfg.epochs / cfg.batch_size)) + " 步";
+            } else {
+              q(".sum-steps").textContent = "–";
+            }
+          }
+
+          /* 提交 */
+          q(".submit-btn").addEventListener("click", function () {
+            if (!state.file || !state.file.ok) return;
+            var cfg = currentConfig();
+            var nameInput = q(".job-name").value.trim();
+            var name = nameInput || (method === "pre"
+              ? "从零预训练 · " + (ARCH_SHORT[cfg.arch_size] || "")
+              : METHOD_INFO[method].label + " · " + (cfg.base_model || "未选模型"));
+            var steps = Math.ceil(state.file.validCount * cfg.epochs / cfg.batch_size);
+            var meta = [];
+            meta.push("数据 " + state.file.name + " · " + state.file.validCount + " 条");
+            if (method === "lora") {
+              meta.push(cfg.base_model || "未选模型");
+              meta.push("LoRA r=" + cfg.lora_rank + " α=" + cfg.lora_alpha);
+            } else if (method === "full") {
+              meta.push(cfg.base_model || "未选模型");
+              meta.push("全参数 · " + (OPT_LABEL[cfg.optimizer] || cfg.optimizer));
+            } else {
+              meta.push(ARCH_LABEL[cfg.arch_size] || cfg.arch_size);
+              meta.push(cfg.n_layer + " 层 · " + cfg.n_embd + " 维");
+            }
+            meta.push(cfg.epochs + " 轮 · " + steps + " 步");
+            meta.push("lr " + fmtSci(cfg.learning_rate));
+            meta.push(cfg.precision);
+            var job = {
+              id: "job_" + Date.now().toString(36),
+              name: name,
+              method: method,
+              created: new Date(),
+              dataset: { name: state.file.name, samples: state.file.validCount, tokens: state.file.totalTokens },
+              config: cfg,
+              meta: meta
+            };
+            jobs.unshift(job);
+            renderJobs();
+            toast("已加入队列");
+            $("h-jobs").scrollIntoView({ behavior: "smooth", block: "start" });
+          });
+
+          updateSummary();
+        });
+
+        /* ---------------- 任务列表 ---------------- */
+
+        function renderJobs() {
+          var list = $("jobList");
+          if (!jobs.length) {
+            list.innerHTML = "<div class=\"empty\">还没有任务。</div>";
+            return;
+          }
+          list.innerHTML = jobs.map(function (job) {
+            var info = METHOD_INFO[job.method] || METHOD_INFO.lora;
+            var time = job.created.toLocaleString("zh-CN", { hour12: false });
+            var meta = job.meta.concat([time]).map(function (s) { return "<span>" + escapeHtml(s) + "</span>"; }).join("");
+            return "<div class=\"job\" style=\"" + info.vars + "\">" +
+              "<div class=\"top\"><span class=\"jname\">" + escapeHtml(job.name) + "</span>" +
+              "<span class=\"mpill\">" + info.label + "</span>" +
+              "<span class=\"jid\">" + job.id + "</span>" +
+              "<span class=\"pill\">等待后端接入</span></div>" +
+              "<div class=\"meta\">" + meta + "</div>" +
+              "<div class=\"acts\">" +
+                "<button class=\"btn small\" type=\"button\" data-act=\"config\" data-id=\"" + job.id + "\">下载训练配置 JSON</button>" +
+                "<button class=\"btn small\" type=\"button\" disabled title=\"训练完成后开放\">下载模型（训练完成后开放）</button>" +
+                "<button class=\"btn small\" type=\"button\" data-act=\"remove\" data-id=\"" + job.id + "\">移除</button>" +
+              "</div>" +
+              "<div class=\"note\">后端未接入，仅存当前页面。</div>" +
+            "</div>";
+          }).join("");
+        }
+
+        $("jobList").addEventListener("click", function (e) {
+          var b = e.target.closest("button[data-act]");
+          if (!b) return;
+          var id = b.getAttribute("data-id");
+          var job = jobs.filter(function (j) { return j.id === id; })[0];
+          if (!job) return;
+          if (b.getAttribute("data-act") === "remove") {
+            jobs = jobs.filter(function (j) { return j.id !== id; });
+            renderJobs();
+            toast("任务已移除");
+          } else if (b.getAttribute("data-act") === "config") {
+            var payload = {
+              job_id: job.id,
+              name: job.name,
+              method: job.config.method,
+              created_at: job.created.toISOString(),
+              dataset: job.dataset,
+              config: job.config,
+              status: "pending_backend"
+            };
+            downloadBlob(new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" }), job.id + "_config.json");
+            toast("配置已下载");
+          }
+        });
+
+        /* ---------------- 智能参数推荐 ---------------- */
+
+        var recoSegs = { dtype: "chat", compute: "cpu" };
+        ["rc-dtype", "rc-compute"].forEach(function (id) {
+          var seg = $(id);
+          if (!seg) return;
+          var key = id === "rc-dtype" ? "dtype" : "compute";
+          seg.addEventListener("click", function (e) {
+            var b = e.target.closest("button[data-value]");
+            if (!b) return;
+            recoSegs[key] = b.getAttribute("data-value");
+            seg.querySelectorAll("button").forEach(function (x) { x.classList.toggle("on", x === b); });
+          });
+        });
+
+        var lastReco = null;
+
+        function setCountError(show) {
+          var err = $("rc-count-error");
+          var input = $("rc-count");
+          if (err) err.classList.toggle("show", show);
+          if (input) {
+            if (show) input.setAttribute("aria-invalid", "true");
+            else input.removeAttribute("aria-invalid");
+          }
+        }
+        $("rc-count").addEventListener("input", function () {
+          var v = parseInt($("rc-count").value, 10);
+          if (!isNaN(v) && v > 0) setCountError(false);
+        });
+
+        function analyzeReco() {
+          var desc = $("rc-desc").value.trim();
+          var count = parseInt($("rc-count").value, 10);
+          var base = $("rc-base").value;
+          var goal = $("rc-goal").value;
+          var dtype = recoSegs.dtype;
+          var compute = recoSegs.compute;
+
+          /* 样本数量缺失：显示表单内可见校验信息（不只靠 toast），并聚焦到输入框 */
+          if (isNaN(count) || count <= 0) {
+            setCountError(true);
+            toast("请先填样本数量");
+            $("rc-count").focus();
+            $("rc-count").scrollIntoView({ behavior: "smooth", block: "center" });
+            return null;
+          }
+          setCountError(false);
+
+          var isCpu = compute === "cpu";
+          var isClassify = /分类|判断|打分|评分/.test(desc);
+          var isStyleKw = /格式|话术|风格|模板|按模板回答/.test(desc);
+          var isLong = /长文|长文档|长篇|论文|报告/.test(desc);
+          var precision = isCpu ? "fp32" : "bf16";
+          var precisionWhy = isCpu
+            ? "CPU 须用 fp32，实测亦然"
+            : "GPU 用 bf16 更快省显存";
+
+          var method, reason, conf, params = [], notes = [], fill = {};
+
+          function p(k, v, w) { params.push({ k: k, v: v, w: w }); }
+          function lrParam(v, w) {
+            p("学习率", v, w);
+            fill.learning_rate = v; /* 字符串原样写入数字输入框：2e-5 就是 2e-5 */
+          }
+          /* 基础模型：所有微调分支都显式处理，不许悄悄保留表单默认值。
+             base 为 "other" 时填空字符串（表单有空选项），并给出提示。 */
+          function baseParam(forFull) {
+            if (base === "other") {
+              fill.base_model = "";
+              p("基础模型", "（留空）", "填入时清空，请手动选");
+              notes.push("基础模型已清空，提交前请手动选。");
+              return;
+            }
+            var eff = base;
+            if (forFull && isCpu && base === "Qwen3-8B") {
+              eff = "Qwen3-1.7B";
+              p("基础模型", "Qwen3-1.7B", "CPU 内存不够，已换 1.7B");
+              notes.push("8B 全参内存不够，已换 1.7B；训 8B 请用 GPU。");
+              return;
+            }
+            p("基础模型", eff, forFull ? "按所选填入" : "按所选填入");
+            if (!forFull && isCpu && base === "Qwen3-8B") {
+              notes.push("8B 在 CPU 上很慢，建议换 1.7B。");
+            }
+            fill.base_model = eff;
+          }
+
+          if (dtype === "text" || goal === "scratch") {
+            /* ---------- 从零预训练 ---------- */
+            method = "pre";
+            conf = 84;
+            reason = dtype === "text"
+              ? "纯文本走从零预训练，已实测跑通。"
+              : "从零学语言或领域，走预训练。";
+            var arch = count >= 5000 ? "base" : "small";
+            fill.arch_size = arch;
+            fill.n_layer = arch === "base" ? 12 : 6;
+            fill.n_embd = arch === "base" ? 768 : 512;
+            p("模型规模", arch === "base" ? "中型 · 约 110M" : "小型 · 约 30M", arch === "base"
+              ? "语料较多，可用更大模型"
+              : "实测跑通的规模");
+            p("层数 / 维度", fill.n_layer + " 层 · " + fill.n_embd + " 维", "配套参考架构");
+            lrParam("3e-4", "从零训练需更大学习率");
+            fill.epochs = 3; p("训练轮数", "3", "先跑 3 轮看 loss");
+            fill.batch_size = 32; p("批大小", "32", "预训练可用大 batch");
+            fill.block_size = isLong ? 1024 : 512;
+            p("上下文长度", String(fill.block_size), isLong ? "长文本防截断" : "参考配置长度");
+            fill.precision = "fp32";
+            p("计算精度", "fp32", "求稳，参考配置亦然");
+            if (dtype === "text" && goal !== "scratch") {
+              notes.push("纯文本只能预训练；教问答请改用对话 JSONL 微调。");
+            }
+            if (count < 100) {
+              notes.push("语料太少，建议扩到几千段。");
+            }
+          } else if (count < 100 && (goal === "style" || isStyleKw)) {
+            /* ---------- 小样本只改风格：LoRA ---------- */
+            method = "lora";
+            conf = 72;
+            reason = "样本少、只改风格，LoRA 最划算。";
+            baseParam(false);
+            fill.lora_rank = 16; fill.lora_alpha = 32;
+            p("LoRA rank", "16", "改风格 16 已够");
+            p("LoRA alpha", "32", "rank 的 2 倍");
+            lrParam(isClassify ? "5e-5" : "1e-4", isClassify
+              ? "分类任务降一档更稳"
+              : "LoRA 稳妥起步值");
+            fill.epochs = 3; p("训练轮数", "3", "多了只会背答案");
+            fill.batch_size = 4; p("批大小", "4", "小样本配小 batch");
+            fill.max_seq_len = isLong ? 4096 : 2048;
+            p("最大长度", String(fill.max_seq_len), isLong ? "长文本防截断" : "覆盖多数对话");
+            fill.precision = precision; p("计算精度", precision, precisionWhy);
+            notes.push("样本太少是最大风险，先扩到 150 条以上。");
+          } else if (count >= 150) {
+            /* ---------- 数据充足：全参数（实测获胜配置） ---------- */
+            method = "full";
+            conf = 88;
+            reason = "样本充足，用实测获胜配置：0.873，通过 3/3。";
+            baseParam(true);
+            lrParam(isClassify ? "1e-5" : "2e-5", isClassify
+              ? "分类任务降一档"
+              : "实测通过的学习率");
+            fill.epochs = 3; p("训练轮数", "3", "实测轮数，多了过拟合");
+            fill.batch_size = 4; p("批大小", "4", "实测批大小");
+            fill.max_seq_len = isLong ? 4096 : 256;
+            p("最大长度", String(fill.max_seq_len), isLong
+              ? "长文本防截断"
+              : "实测用的长度");
+            fill.warmup_ratio = 0.03; p("预热比例", "3%", "缓升学习率防冲坏");
+            fill.optimizer = "adamw_torch"; p("优化器", "AdamW", "标准选择");
+            fill.precision = "fp32"; p("计算精度", "fp32", isCpu
+              ? "CPU 须用 fp32"
+              : "与实测一致");
+            if (goal === "style") {
+              notes.push("只改风格的话，LoRA 更便宜。");
+            }
+          } else if (count < 100) {
+            /* ---------- 小样本但要学知识/纪律：LoRA 先行 + 扩数据警告 ---------- */
+            method = "lora";
+            conf = 58;
+            reason = "样本太少，先用 LoRA 验证，扩到 150 条再上全参。";
+            baseParam(false);
+            fill.lora_rank = 16; fill.lora_alpha = 32;
+            p("LoRA rank", "16", "先验证方向");
+            p("LoRA alpha", "32", "rank 的 2 倍");
+            lrParam(isClassify ? "5e-5" : "1e-4", isClassify
+              ? "分类任务降一档更稳"
+              : "稳妥起步值");
+            fill.epochs = 3; p("训练轮数", "3", "多了只会背答案");
+            fill.batch_size = 4; p("批大小", "4", "实测小 batch");
+            fill.max_seq_len = isLong ? 4096 : 2048;
+            p("最大长度", String(fill.max_seq_len), isLong ? "长文本防截断" : "覆盖多数对话");
+            fill.precision = precision; p("计算精度", precision, precisionWhy);
+            notes.push("先扩到 150 条以上：183 条实测 3/3 通过，39 条未通过。");
+          } else {
+            /* ---------- 100–149 条：全参数，但提示扩到 150+ ---------- */
+            method = "full";
+            conf = 74;
+            reason = "样本接近达标，按实测获胜配置给。";
+            baseParam(true);
+            lrParam(isClassify ? "1e-5" : "2e-5", isClassify
+              ? "分类任务降一档"
+              : "实测通过的学习率");
+            fill.epochs = 3; p("训练轮数", "3", "实测值");
+            fill.batch_size = 4; p("批大小", "4", "实测值");
+            fill.max_seq_len = isLong ? 4096 : 256;
+            p("最大长度", String(fill.max_seq_len), isLong ? "长文本防截断" : "实测用的长度");
+            fill.warmup_ratio = 0.03; p("预热比例", "3%", "缓升防冲坏");
+            fill.optimizer = "adamw_torch"; p("优化器", "AdamW", "标准选择");
+            fill.precision = "fp32"; p("计算精度", "fp32", isCpu
+              ? "CPU 须用 fp32"
+              : "与实测一致");
+            notes.push("还没到 183 条，建议先扩到 150 条以上。");
+          }
+
+          if (isClassify && method !== "pre") {
+            notes.push("分类任务验收重点看输出格式。");
+          }
+          if (!isCpu && method === "full" && base === "Qwen3-8B" && compute === "gpu24") {
+            notes.push("单卡 24GB 很紧，保持梯度检查点开启。");
+          }
+
+          return {
+            method: method,
+            label: METHOD_INFO[method].label,
+            reason: reason,
+            conf: conf,
+            params: params,
+            notes: notes,
+            fill: fill
+          };
+        }
+
+        function renderReco(rec) {
+          var out = $("rc-out");
+          out.classList.add("filled");
+          var html = "<div class=\"ro-method\"><span class=\"rm-name\">" + escapeHtml(rec.label) + "</span>" +
+            "<span class=\"rm-conf\">置信度 " + rec.conf + "%</span></div>" +
+            "<p class=\"ro-reason\">" + escapeHtml(rec.reason) + "</p>" +
+            "<div class=\"ro-params\">" + rec.params.map(function (pr) {
+              return "<div class=\"pr\"><span class=\"pk\">" + escapeHtml(pr.k) + "</span>" +
+                "<span class=\"pv\">" + escapeHtml(pr.v) + "</span>" +
+                "<span class=\"pw\">" + escapeHtml(pr.w) + "</span></div>";
+            }).join("") + "</div>";
+          if (rec.notes.length) {
+            html += "<ul class=\"ro-notes\">" + rec.notes.map(function (n) {
+              return "<li>" + escapeHtml(n) + "</li>";
+            }).join("") + "</ul>";
+          }
+          html += "<div class=\"ro-apply\"><button class=\"btn reco-go\" type=\"button\" id=\"rc-apply\">填入「" + escapeHtml(rec.label) + "」表单</button></div>";
+          out.innerHTML = html;
+          $("rc-apply").addEventListener("click", function () { applyReco(rec); });
+        }
+
+        function applyReco(rec) {
+          enterTrain(rec.method);
+          var ws = document.querySelector(".workspace[data-method=\"" + rec.method + "\"]");
+          if (!ws) return;
+          Object.keys(rec.fill).forEach(function (name) {
+            var el = ws.querySelector("[data-field=\"" + name + "\"]");
+            if (!el) return;
+            el.value = String(rec.fill[name]);
+            el.dispatchEvent(new Event("input", { bubbles: true }));
+            el.dispatchEvent(new Event("change", { bubbles: true }));
+          });
+          /* 学习率输入框是真值，已在上面按字符串原样写入（2e-5 / 3e-4 / 5e-5）；
+             这里只把滑杆挪到对应位置做视觉同步，不反写输入框。 */
+          var lrInput = ws.querySelector("[data-field=\"learning_rate\"]");
+          var lrRange = ws.querySelector("[data-lr-range]");
+          if (lrInput && lrRange) {
+            var v = parseFloat(lrInput.value);
+            if (v > 0 && isFinite(v)) lrRange.value = String(Math.log10(v));
+          }
+          toast("已填入「" + rec.label + "」表单");
+          setTimeout(function () {
+            ws.scrollIntoView({ behavior: "smooth", block: "start" });
+          }, 350);
+        }
+
+        $("rc-run").addEventListener("click", function () {
+          var rec = analyzeReco();
+          if (!rec) return;
+          lastReco = rec;
+          renderReco(rec);
+          $("rc-out").scrollIntoView({ behavior: "smooth", block: "nearest" });
+        });
+      })();
+    </script>
+  </body>
+</html>
